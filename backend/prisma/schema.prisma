@@ -3,8 +3,8 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider = "sqlite"
+  url      = "file:./dev.db"
 }
 
 model User {
@@ -17,53 +17,48 @@ model User {
 }
 
 model Club {
-  id          String   @id @default(uuid())
-  name        String
-  shortName   String
-  budget      Float    @default(0)
-  
-  userId      String?  @unique
-  manager     User?    @relation(fields: [userId], references: [id])
-  
-  players     ClubPlayer[]
-  tactic      Tactic?
-  
+  id        String @id @default(uuid())
+  name      String
+  shortName String
+  budget    Float  @default(0)
+
+  userId  String? @unique
+  manager User?   @relation(fields: [userId], references: [id])
+
+  players ClubPlayer[]
+  tactic  Tactic?
+
   homeFixtures Fixture[] @relation("HomeFixtures")
   awayFixtures Fixture[] @relation("AwayFixtures")
-  
+
   transfersFrom Transfer[] @relation("TransfersFrom")
   transfersTo   Transfer[] @relation("TransfersTo")
 
   matchEvents MatchEvent[]
-  
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([userId])
 }
 
-enum Position {
-  GK
-  DEF
-  MID
-  FWD
-}
+
 
 model Player {
   id          String   @id @default(uuid())
   firstName   String
   lastName    String
-  position    Position
+  position    String
   age         Int
   rating      Int
   marketValue Float    @default(0)
-  
+
   clubMemberships ClubPlayer[]
   matchEvents     MatchEvent[]
   transfers       Transfer[]
-  
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model ClubPlayer {
@@ -71,52 +66,46 @@ model ClubPlayer {
   clubId      String
   playerId    String
   shirtNumber Int
+  isStarting  Boolean  @default(false)
   joinedAt    DateTime @default(now())
 
-  club        Club     @relation(fields: [clubId], references: [id])
-  player      Player   @relation(fields: [playerId], references: [id])
+  club   Club   @relation(fields: [clubId], references: [id])
+  player Player @relation(fields: [playerId], references: [id])
 
   @@unique([clubId, playerId])
   @@index([clubId])
   @@index([playerId])
 }
 
-enum Mentality {
-  BALANCED
-  ATTACKING
-  DEFENSIVE
-}
+
 
 model Tactic {
   id        String    @id @default(uuid())
   clubId    String    @unique
   formation String
-  mentality Mentality @default(BALANCED)
-  
-  club      Club      @relation(fields: [clubId], references: [id])
-  
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
+  mentality String    @default("BALANCED")
+
+  club Club @relation(fields: [clubId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
-enum FixtureStatus {
-  SCHEDULED
-  PLAYED
-}
+
 
 model Fixture {
   id          String        @id @default(uuid())
   homeClubId  String
   awayClubId  String
   scheduledAt DateTime
-  status      FixtureStatus @default(SCHEDULED)
+  status      String        @default("SCHEDULED")
   season      String
-  
-  homeClub    Club          @relation("HomeFixtures", fields: [homeClubId], references: [id])
-  awayClub    Club          @relation("AwayFixtures", fields: [awayClubId], references: [id])
-  match       Match?
-  
-  createdAt   DateTime      @default(now())
+
+  homeClub Club   @relation("HomeFixtures", fields: [homeClubId], references: [id])
+  awayClub Club   @relation("AwayFixtures", fields: [awayClubId], references: [id])
+  match    Match?
+
+  createdAt DateTime @default(now())
 
   @@index([homeClubId])
   @@index([awayClubId])
@@ -125,33 +114,29 @@ model Fixture {
 }
 
 model Match {
-  id          String   @id @default(uuid())
-  fixtureId   String   @unique
-  homeScore   Int      @default(0)
-  awayScore   Int      @default(0)
-  playedAt    DateTime @default(now())
-  
-  fixture     Fixture  @relation(fields: [fixtureId], references: [id])
-  events      MatchEvent[]
+  id        String   @id @default(uuid())
+  fixtureId String   @unique
+  homeScore Int      @default(0)
+  awayScore Int      @default(0)
+  playedAt  DateTime @default(now())
+
+  fixture Fixture      @relation(fields: [fixtureId], references: [id])
+  events  MatchEvent[]
 }
 
-enum MatchEventType {
-  GOAL
-  YELLOW_CARD
-  RED_CARD
-}
+
 
 model MatchEvent {
-  id        String         @id @default(uuid())
-  matchId   String
-  minute    Int
-  type      MatchEventType
-  playerId  String?
-  clubId    String?
+  id       String         @id @default(uuid())
+  matchId  String
+  minute   Int
+  type     String
+  playerId String?
+  clubId   String?
 
-  match     Match          @relation(fields: [matchId], references: [id])
-  player    Player?        @relation(fields: [playerId], references: [id])
-  club      Club?          @relation(fields: [clubId], references: [id])
+  match  Match   @relation(fields: [matchId], references: [id])
+  player Player? @relation(fields: [playerId], references: [id])
+  club   Club?   @relation(fields: [clubId], references: [id])
 
   @@index([matchId])
   @@index([playerId])
@@ -166,9 +151,9 @@ model Transfer {
   fee           Float
   transferredAt DateTime @default(now())
 
-  player        Player   @relation(fields: [playerId], references: [id])
-  fromClub      Club?    @relation("TransfersFrom", fields: [fromClubId], references: [id])
-  toClub        Club     @relation("TransfersTo", fields: [toClubId], references: [id])
+  player   Player @relation(fields: [playerId], references: [id])
+  fromClub Club?  @relation("TransfersFrom", fields: [fromClubId], references: [id])
+  toClub   Club   @relation("TransfersTo", fields: [toClubId], references: [id])
 
   @@index([playerId])
   @@index([fromClubId])
