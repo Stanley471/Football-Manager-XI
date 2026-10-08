@@ -21,6 +21,7 @@ model Club {
   name      String
   shortName String
   balance   Int    @default(100000)
+  fmCoins   Int    @default(0)
 
   userId  String? @unique
   manager User?   @relation(fields: [userId], references: [id])
@@ -36,6 +37,7 @@ model Club {
 
   matchEvents MatchEvent[]
   transactions CoinTransaction[]
+  stellarPurchases StellarPurchase[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -172,4 +174,21 @@ model Transfer {
   @@index([playerId])
   @@index([fromClubId])
   @@index([toClubId])
+}
+
+model StellarPurchase {
+  id              String   @id @default(uuid())
+  clubId          String
+  transactionHash String   @unique
+  packageId       String
+  paymentAmount   String
+  paymentToken    String
+  fmCoinAmount    Int
+  treasuryAddress String
+  status          String
+  createdAt       DateTime @default(now())
+
+  club            Club     @relation(fields: [clubId], references: [id])
+
+  @@index([clubId])
 }
