@@ -20,7 +20,7 @@ model Club {
   id        String @id @default(uuid())
   name      String
   shortName String
-  budget    Float  @default(0)
+  balance   Int    @default(100000)
 
   userId  String? @unique
   manager User?   @relation(fields: [userId], references: [id])
@@ -35,11 +35,25 @@ model Club {
   transfersTo   Transfer[] @relation("TransfersTo")
 
   matchEvents MatchEvent[]
+  transactions CoinTransaction[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   @@index([userId])
+}
+
+model CoinTransaction {
+  id          String   @id @default(uuid())
+  clubId      String
+  club        Club     @relation(fields: [clubId], references: [id])
+  amount      Int
+  type        String
+  description String
+  referenceId String?
+  createdAt   DateTime @default(now())
+
+  @@index([clubId])
 }
 
 

@@ -7,25 +7,25 @@ const clubsData = [
     id: 'c1000000-0000-0000-0000-000000000001',
     name: 'North London FC',
     shortName: 'NLO',
-    budget: 50000000,
+    balance: 100000,
   },
   {
     id: 'c2000000-0000-0000-0000-000000000002',
     name: 'Manchester United Blue',
     shortName: 'MUB',
-    budget: 80000000,
+    balance: 100000,
   },
   {
     id: 'c3000000-0000-0000-0000-000000000003',
     name: 'Merseyside Reds',
     shortName: 'MER',
-    budget: 65000000,
+    balance: 100000,
   },
   {
     id: 'c4000000-0000-0000-0000-000000000004',
     name: 'West London Blues',
     shortName: 'WLB',
-    budget: 70000000,
+    balance: 100000,
   }
 ];
 
@@ -45,7 +45,14 @@ async function main() {
         id: clubInfo.id,
         name: clubInfo.name,
         shortName: clubInfo.shortName,
-        budget: clubInfo.budget,
+        balance: clubInfo.balance,
+        transactions: {
+          create: {
+            amount: clubInfo.balance,
+            type: 'STARTING_BALANCE',
+            description: 'Initial FM Coin grant'
+          }
+        },
         tactic: {
           create: {
             formation: '4-4-2',
