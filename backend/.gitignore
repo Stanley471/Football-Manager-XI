@@ -1,1 +1,7 @@
+node_modules/
+dist/
 .env
+dev.db
+dev.db-journal
+coverage/
+.DS_Store
