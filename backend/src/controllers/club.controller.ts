@@ -161,3 +161,95 @@ export const updateStartingXI = async (req: Request, res: Response) => {
     res.status(500).json({ error: 'Internal server error' });
   }
 };
+
+export const getFinance = async (req: Request, res: Response) => {
+  try {
+    const clubId = req.params.clubId as string;
+    const club = await prisma.club.findUnique({
+      where: { id: clubId },
+      include: {
+        transactions: {
+          orderBy: { createdAt: 'desc' }
+        }
+      }
+    });
+
+    if (!club) return res.status(404).json({ error: 'Club not found' });
+
+    let income = 0;
+    let spending = 0;
+
+    for (const tx of club.transactions) {
+      if (tx.amount > 0) income += tx.amount;
+      else if (tx.amount < 0) spending += Math.abs(tx.amount);
+    }
+
+    res.json({
+      balance: club.balance,
+      income,
+      spending,
+      transactions: club.transactions
+    });
+  } catch (error) {
+    res.status(500).json({ error: 'Internal server error' });
+  }
+};
+
+import { debitCoins, creditCoins } from '../services/coinService';
+
+export const scout = async (req: Request, res: Response) => {
+  try {
+    const clubId = req.params.clubId as string;
+    
+    // Check balance and deduct 500 FM
+    await prisma.$transaction(async (tx) => {
+      await debitCoins(clubId, 500, 'SCOUTING', 'Scouted new players', undefined, tx);
+    });
+
+    // Return dummy available players for MVP
+    const dummyPlayers = [
+      { id: 'scout1', firstName: 'New', lastName: 'Prospect', position: 'FWD', age: 19, rating: 72, marketValue: 500000 },
+      { id: 'scout2', firstName: 'Young', lastName: 'Talent', position: 'MID', age: 20, rating: 75, marketValue: 800000 }
+    ];
+
+    res.json({ message: 'Scouting successful', players: dummyPlayers });
+  } catch (error: any) {
+    res.status(400).json({ error: error.message });
+  }
+};
+
+export const buyPlayer = async (req: Request, res: Response) => {
+  try {
+    const clubId = req.params.clubId as string;
+    const playerId = req.params.playerId as string;
+
+    const clubPlayer = await prisma.clubPlayer.findFirst({
+      where: { playerId },
+      include: { player: true }
+    });
+
+    if (!clubPlayer) return res.status(404).json({ error: 'Player not found in any club' });
+    if (clubPlayer.clubId === clubId) return res.status(400).json({ error: 'Player already belongs to this club' });
+
+    const price = clubPlayer.player.marketValue;
+    const sellerId = clubPlayer.clubId;
+
+    await prisma.$transaction(async (tx) => {
+      // Debit buyer
+      await debitCoins(clubId, price, 'PLAYER_PURCHASE', `Bought player ${clubPlayer.player.lastName}`, playerId, tx);
+      
+      // Credit seller
+      await creditCoins(sellerId, price, 'PLAYER_SALE', `Sold player ${clubPlayer.player.lastName}`, playerId, tx);
+      
+      // Transfer player
+      await tx.clubPlayer.update({
+        where: { id: clubPlayer.id },
+        data: { clubId, isStarting: false }
+      });
+    });
+
+    res.json({ message: 'Transfer successful' });
+  } catch (error: any) {
+    res.status(400).json({ error: error.message });
+  }
+};
