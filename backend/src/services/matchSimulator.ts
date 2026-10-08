@@ -96,8 +96,8 @@ export const simulateMatch = async (fixture: any, homeStartingXI: any[], awaySta
   eventsData.sort((a, b) => a.minute - b.minute);
 
   // 4. Database Transaction
-  const [match] = await prisma.$transaction([
-    prisma.match.create({
+  const match = await prisma.$transaction(async (tx) => {
+    const createdMatch = await tx.match.create({
       data: {
         fixtureId: fixture.id,
         homeScore,
@@ -109,12 +109,49 @@ export const simulateMatch = async (fixture: any, homeStartingXI: any[], awaySta
       include: {
         events: true
       }
-    }),
-    prisma.fixture.update({
+    });
+
+    await tx.fixture.update({
       where: { id: fixture.id },
       data: { status: 'PLAYED' }
-    })
-  ]);
+    });
+
+    // 5. Coin Economy Rewards
+    let homeAward = 1000;
+    let awayAward = 1000;
+    if (homeScore > awayScore) {
+      homeAward = 2000;
+      awayAward = 500;
+    } else if (awayScore > homeScore) {
+      homeAward = 500;
+      awayAward = 2000;
+    }
+
+    // Must import creditCoins - wait, we shouldn't use require inside. Let's assume we import at top.
+    // Instead of importing, we can manually implement the Prisma update here or import it.
+    // Let's manually do it so we don't worry about import cycles.
+    await tx.club.update({
+      where: { id: fixture.homeClubId },
+      data: {
+        balance: { increment: homeAward },
+        transactions: {
+          create: { amount: homeAward, type: 'MATCH_REWARD', description: 'Match reward', referenceId: createdMatch.id }
+        }
+      }
+    });
+
+    await tx.club.update({
+      where: { id: fixture.awayClubId },
+      data: {
+        balance: { increment: awayAward },
+        transactions: {
+          create: { amount: awayAward, type: 'MATCH_REWARD', description: 'Match reward', referenceId: createdMatch.id }
+        }
+      }
+    });
+
+    return createdMatch;
+  });
 
   return {
     fixture: { ...fixture, status: 'PLAYED' },
