@@ -1,4 +1,4 @@
-import { PrismaClient, Position, Mentality } from '@prisma/client';
+import { PrismaClient } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
@@ -29,7 +29,7 @@ const clubsData = [
   }
 ];
 
-const positions: Position[] = ['GK', 'DEF', 'DEF', 'DEF', 'DEF', 'MID', 'MID', 'MID', 'MID', 'FWD', 'FWD', 'GK', 'DEF', 'MID', 'FWD'];
+const positions: string[] = ['GK', 'DEF', 'DEF', 'DEF', 'DEF', 'MID', 'MID', 'MID', 'MID', 'FWD', 'FWD', 'GK', 'DEF', 'MID', 'FWD'];
 
 async function main() {
   console.log('Starting seed...');
@@ -49,7 +49,7 @@ async function main() {
         tactic: {
           create: {
             formation: '4-4-2',
-            mentality: Mentality.BALANCED
+            mentality: 'BALANCED'
           }
         }
       }
@@ -81,6 +81,30 @@ async function main() {
       });
     }
   }
+
+  // Create some fixtures
+  console.log('Creating fixtures...');
+  await prisma.fixture.create({
+    data: {
+      id: 'f1000000-0000-0000-0000-000000000001',
+      homeClubId: clubsData[0].id,
+      awayClubId: clubsData[1].id,
+      scheduledAt: new Date(Date.now() + 86400000), // Tomorrow
+      status: 'SCHEDULED',
+      season: '2026/2027'
+    }
+  });
+
+  await prisma.fixture.create({
+    data: {
+      id: 'f2000000-0000-0000-0000-000000000002',
+      homeClubId: clubsData[2].id,
+      awayClubId: clubsData[3].id,
+      scheduledAt: new Date(Date.now() + 86400000 * 2),
+      status: 'SCHEDULED',
+      season: '2026/2027'
+    }
+  });
 
   console.log('Seed completed successfully.');
 }
