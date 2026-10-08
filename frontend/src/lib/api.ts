@@ -2,8 +2,24 @@ export interface Club {
   id: string;
   name: string;
   shortName: string;
-  budget: number;
+  balance: number;
   tactic?: Tactic;
+}
+
+export interface CoinTransaction {
+  id: string;
+  amount: number;
+  type: string;
+  description: string;
+  referenceId?: string;
+  createdAt: string;
+}
+
+export interface FinanceSummary {
+  balance: number;
+  income: number;
+  spending: number;
+  transactions: CoinTransaction[];
 }
 
 export interface Player {
@@ -115,3 +131,11 @@ export const simulateFixture = (fixtureId: string) =>
 
 export const getLeagueTable = (season: string = '2026/2027') => 
   fetchAPI<LeagueRow[]>(`/leagues/${encodeURIComponent(season)}/table`);
+
+export const getFinance = (clubId: string) => fetchAPI<FinanceSummary>(`/clubs/${clubId}/finance`);
+
+export const scout = (clubId: string) => 
+  fetchAPI<{ message: string, players: Player[] }>(`/clubs/${clubId}/scouting`, { method: 'POST' });
+
+export const buyPlayer = (clubId: string, playerId: string) => 
+  fetchAPI<{ message: string }>(`/clubs/${clubId}/players/${playerId}/buy`, { method: 'POST' });

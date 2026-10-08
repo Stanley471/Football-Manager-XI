@@ -50,8 +50,8 @@ export default function Dashboard() {
       
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
         <div className="bg-zinc-900 p-6 rounded-lg border border-zinc-800">
-          <h3 className="text-zinc-400 text-sm font-semibold uppercase mb-2">Club Budget</h3>
-          <p className="text-2xl font-bold">${club.budget.toLocaleString()}</p>
+          <h3 className="text-zinc-400 text-sm font-semibold uppercase mb-2">Club Balance</h3>
+          <p className="text-2xl font-bold">{club.balance.toLocaleString()} FM</p>
         </div>
         <div className="bg-zinc-900 p-6 rounded-lg border border-zinc-800">
           <h3 className="text-zinc-400 text-sm font-semibold uppercase mb-2">Squad Size</h3>

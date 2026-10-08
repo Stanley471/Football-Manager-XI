@@ -11,6 +11,7 @@ export default function Navigation() {
     { href: '/tactics', label: 'Tactics' },
     { href: '/fixtures', label: 'Fixtures' },
     { href: '/league', label: 'League Table' },
+    { href: '/finance', label: 'Finance' },
   ];
 
   return (
