@@ -7,8 +7,12 @@ dotenv.config();
 const app = express();
 const port = process.env.PORT || 5000;
 
+import stellarRoutes from './routes/stellarRoutes';
+
 app.use(cors());
 app.use(express.json());
+
+app.use('/api/v1/clubs/:clubId/stellar', stellarRoutes);
 
 app.get('/api/health', (req: Request, res: Response) => {
   res.json({
