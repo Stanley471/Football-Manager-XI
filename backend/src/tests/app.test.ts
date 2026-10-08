@@ -129,4 +129,91 @@ describe('Football Manager XI MVP API', () => {
     assert.ok(res.body.length > 0);
     assert.ok(res.body[0].points !== undefined);
   });
+
+  test('New club starts with 100,000 FM and starting transaction exists', async () => {
+    const res = await request(app).get(`/api/v1/clubs/${homeClubId}/finance`);
+    assert.strictEqual(res.status, 200);
+    
+    const { balance, transactions } = res.body;
+    // Note: If a match was just played, balance might be higher (100,000 + 2,000 or +500).
+    // So let's just assert it's >= 100000.
+    assert.ok(balance >= 100000);
+    
+    // Check if STARTING_BALANCE exists
+    const startTx = transactions.find((tx: any) => tx.type === 'STARTING_BALANCE');
+    assert.ok(startTx);
+    assert.strictEqual(startTx.amount, 100000);
+  });
+
+  test('Scouting costs 500 FM and records transaction', async () => {
+    const preRes = await request(app).get(`/api/v1/clubs/${homeClubId}/finance`);
+    const initialBalance = preRes.body.balance;
+
+    const res = await request(app).post(`/api/v1/clubs/${homeClubId}/scouting`);
+    assert.strictEqual(res.status, 200);
+    assert.ok(res.body.players);
+
+    const postRes = await request(app).get(`/api/v1/clubs/${homeClubId}/finance`);
+    assert.strictEqual(postRes.body.balance, initialBalance - 500);
+
+    const scoutTx = postRes.body.transactions.find((tx: any) => tx.type === 'SCOUTING');
+    assert.ok(scoutTx);
+    assert.strictEqual(scoutTx.amount, -500);
+  });
+
+  test('Player transfer credits seller, debits buyer, and records transactions', async () => {
+    // Find a player in awayClub to buy
+    const awayPlayers = await prisma.clubPlayer.findMany({ where: { clubId: awayClubId }, include: { player: true } });
+    const playerToBuy = awayPlayers[0];
+
+    const price = playerToBuy.player.marketValue;
+
+    // Grant buyer enough money first to pass the check
+    await prisma.club.update({
+      where: { id: homeClubId },
+      data: { balance: { increment: price } }
+    });
+
+    const preBuyerRes = await request(app).get(`/api/v1/clubs/${homeClubId}/finance`);
+    const preSellerRes = await request(app).get(`/api/v1/clubs/${awayClubId}/finance`);
+
+    const buyerInitialBalance = preBuyerRes.body.balance;
+    const sellerInitialBalance = preSellerRes.body.balance;
+
+    const res = await request(app).post(`/api/v1/clubs/${homeClubId}/players/${playerToBuy.playerId}/buy`);
+    assert.strictEqual(res.status, 200);
+
+    const postBuyerRes = await request(app).get(`/api/v1/clubs/${homeClubId}/finance`);
+    const postSellerRes = await request(app).get(`/api/v1/clubs/${awayClubId}/finance`);
+
+    assert.strictEqual(postBuyerRes.body.balance, buyerInitialBalance - price);
+    assert.strictEqual(postSellerRes.body.balance, sellerInitialBalance + price);
+
+    const purchaseTx = postBuyerRes.body.transactions.find((tx: any) => tx.type === 'PLAYER_PURCHASE' && tx.referenceId === playerToBuy.playerId);
+    const saleTx = postSellerRes.body.transactions.find((tx: any) => tx.type === 'PLAYER_SALE' && tx.referenceId === playerToBuy.playerId);
+
+    assert.ok(purchaseTx);
+    assert.strictEqual(purchaseTx.amount, -price);
+    assert.ok(saleTx);
+    assert.strictEqual(saleTx.amount, price);
+
+    // Verify club change
+    const updatedClubPlayer = await prisma.clubPlayer.findFirst({ where: { playerId: playerToBuy.playerId } });
+    assert.strictEqual(updatedClubPlayer?.clubId, homeClubId);
+  });
+
+  test('Negative balance prevention (insufficient funds)', async () => {
+    // Attempt to buy an extremely expensive player by temporarily giving them a huge market value
+    const awayPlayers = await prisma.clubPlayer.findMany({ where: { clubId: awayClubId }, include: { player: true } });
+    const playerToBuy = awayPlayers[awayPlayers.length - 1]; // get someone else
+    
+    await prisma.player.update({
+      where: { id: playerToBuy.playerId },
+      data: { marketValue: 999999999 } // 999 million
+    });
+
+    const res = await request(app).post(`/api/v1/clubs/${homeClubId}/players/${playerToBuy.playerId}/buy`);
+    assert.strictEqual(res.status, 400);
+    assert.match(res.body.error, /Insufficient/);
+  });
 });
