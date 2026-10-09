@@ -93,7 +93,7 @@ async function main() {
   console.log('Creating fixtures...');
   await prisma.fixture.upsert({
     where: { id: 'f1000000-0000-0000-0000-000000000001' },
-    update: {},
+    update: { status: 'SCHEDULED' },
     create: {
       id: 'f1000000-0000-0000-0000-000000000001',
       homeClubId: clubsData[0].id,
@@ -106,7 +106,7 @@ async function main() {
 
   await prisma.fixture.upsert({
     where: { id: 'f2000000-0000-0000-0000-000000000002' },
-    update: {},
+    update: { status: 'SCHEDULED' },
     create: {
       id: 'f2000000-0000-0000-0000-000000000002',
       homeClubId: clubsData[2].id,

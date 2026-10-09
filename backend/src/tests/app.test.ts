@@ -12,13 +12,14 @@ describe('Football Manager XI MVP API', () => {
 
   before(async () => {
     // Seed test data using existing prisma setup
-    const clubs = await prisma.club.findMany();
-    homeClubId = clubs[0].id;
-    awayClubId = clubs[1].id;
+    const fixtures = await prisma.fixture.findMany({ where: { status: 'SCHEDULED' } });
+    if (fixtures.length === 0) throw new Error("No scheduled fixtures found");
+    
+    fixtureId = fixtures[0].id;
+    homeClubId = fixtures[0].homeClubId;
+    awayClubId = fixtures[0].awayClubId;
 
     homePlayers = await prisma.clubPlayer.findMany({ where: { clubId: homeClubId }, include: { player: true } });
-    const fixtures = await prisma.fixture.findMany({ where: { status: 'SCHEDULED' } });
-    fixtureId = fixtures[0].id;
   });
 
   test('Valid starting XI logic', async () => {
