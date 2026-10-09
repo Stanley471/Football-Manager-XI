@@ -1,6 +1,7 @@
 'use client';
 import { useEffect, useState } from 'react';
 import { getFinance, FinanceSummary } from '@/lib/api';
+import BuyCoins from '@/components/BuyCoins';
 
 export default function FinancePage() {
   const [finance, setFinance] = useState<FinanceSummary | null>(null);
@@ -9,17 +10,18 @@ export default function FinancePage() {
 
   const CLUB_ID = process.env.NEXT_PUBLIC_CLUB_ID as string;
 
-  useEffect(() => {
-    async function load() {
-      try {
-        const data = await getFinance(CLUB_ID);
-        setFinance(data);
-      } catch (err: unknown) {
-        setError(err instanceof Error ? err.message : String(err));
-      } finally {
-        setLoading(false);
-      }
+  const load = async () => {
+    try {
+      const data = await getFinance(CLUB_ID);
+      setFinance(data);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setLoading(false);
     }
+  };
+
+  useEffect(() => {
     load();
   }, [CLUB_ID]);
 
@@ -48,6 +50,8 @@ export default function FinancePage() {
             </div>
           </div>
 
+          <BuyCoins clubId={CLUB_ID} onSuccess={load} />
+
           <div className="bg-zinc-900 rounded-lg border border-zinc-800 overflow-hidden">
             <div className="p-4 border-b border-zinc-800">
               <h3 className="font-bold text-lg">Transaction Ledger</h3>
@@ -72,7 +76,14 @@ export default function FinancePage() {
                       <td className="p-4 text-sm text-zinc-400">
                         {new Date(tx.createdAt).toLocaleString()}
                       </td>
-                      <td className="p-4 font-medium">{tx.description}</td>
+                      <td className="p-4 font-medium">
+                        {tx.description}
+                        {tx.type === 'STELLAR_PURCHASE' && tx.referenceId && (
+                          <div className="text-xs text-zinc-500 mt-1 font-mono">
+                            Tx: {tx.referenceId.slice(0, 8)}...{tx.referenceId.slice(-8)}
+                          </div>
+                        )}
+                      </td>
                       <td className="p-4">
                         <span className="bg-zinc-950 text-xs px-2 py-1 rounded text-zinc-400 border border-zinc-800">
                           {tx.type}
