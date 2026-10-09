@@ -1,28 +1,178 @@
+# Football-Manager-XI
 
-## Stellar FM Coin Verification
+An open-source football management game with a built-in FM Coin economy integrated with the Stellar blockchain. Manage your club, set your tactics, simulate matches, and handle finances to build the ultimate team.
 
-This backend now includes a secure Stellar verification service to process FM Coin purchases made via the Soroban FM Coin Store contract on the Stellar network. 
+## ⚠️ Project Status & Implementation Caveats
 
-### Architecture Flow
-User -> Stellar wallet -> Soroban FM Coin Store -> USDC payment -> Stellar transaction -> POST `/stellar/purchases/verify` -> Stellar RPC verification -> PostgreSQL transaction -> `STELLAR_PURCHASE` (idempotent) -> FM Coins credited.
+This project is an MVP and is currently **in development**. While many core features are functional, some critical integrations are incomplete:
 
-### Idempotency Strategy
-The backend safely enforces idempotency using the Stellar `transactionHash`. When a hash is submitted:
-1. We check if the hash exists in the `StellarPurchase` table.
-2. If yes, we return the successful result without crediting FM Coins again.
-3. If no, we fetch the hash from the Stellar network, verify its success, and verify all contract execution data (contract ID, payment token, treasury, package ID).
-4. Only then, in an atomic database transaction, the purchase record is created and FM Coins are added to the Club.
+* **Authentication & Authorization:** The application currently relies on a hardcoded development `CLUB_ID`. There is no production authentication or wallet-to-club ownership verification implemented yet.
+* **Stellar Verification:** While the Soroban smart contract is written and the frontend integrates with the Freighter wallet, the backend Express server currently relies on **mocked XDR parsing** for transaction verification. A real, end-to-end Testnet transaction will fail verification without further implementation.
+* **Database:** The project currently uses a local **SQLite** database (`dev.db`) for development, despite any earlier plans for PostgreSQL or Supabase.
 
-### Why frontend payment data is never trusted
-The client only submits the `transactionHash`. Any information about the "amount paid", "USDC sent", or "package selected" provided directly by the frontend could be spoofed. The backend solely relies on parsing the verified contract events returned by the Stellar RPC to derive the payment parameters and verify correctness.
+## 🌟 Implemented Features
 
-### Why FM Coins remain off-chain
-To keep database game mechanics fast, avoid gas fees on every tiny in-game action, and minimize latency during matchmaking/transfers, FM Coins are credited to an off-chain ledger within PostgreSQL. 
+### Football Management Gameplay
+| Feature | Status | Description |
+|---|---|---|
+| **Dashboard** | IMPLEMENTED | View club summary and basic stats. |
+| **Squad Management** | IMPLEMENTED | View player attributes and select the starting XI. |
+| **Tactics** | IMPLEMENTED | Validate and select formations (e.g., 4-4-2, 4-3-3) and mentalities (e.g., Attacking). |
+| **Match Simulation** | IMPLEMENTED | Simulates scheduled fixtures, generating goals, events, and final scores. Double-simulation prevented. |
+| **League Standings** | IMPLEMENTED | View the current league table with points and goal differences. |
+| **Transfers & Scouting** | IMPLEMENTED | Buy players from other clubs; scout new players. |
 
-### Environment Setup
-Make sure the following variables are in your `.env`:
-- `STELLAR_NETWORK`
-- `STELLAR_RPC_URL`
-- `STELLAR_FM_COIN_STORE_CONTRACT_ID`
-- `STELLAR_USDC_CONTRACT_ID`
-- `STELLAR_TREASURY_ADDRESS`
+### FM Coin Economy & Ledger
+| Feature | Status | Description |
+|---|---|---|
+| **Club Balance** | IMPLEMENTED | Clubs start with a 100,000 FM balance. Negative balances are prevented. |
+| **Transaction Ledger** | IMPLEMENTED | All expenses (scouting, transfers) and incomes are atomic and recorded in a `CoinTransaction` ledger. |
+| **Scouting Costs** | IMPLEMENTED | Deducts 500 FM per scouting action. |
+
+### Stellar Integration
+| Feature | Status | Description |
+|---|---|---|
+| **Soroban Contract** | IMPLEMENTED | Rust contract (`fm-coin-store`) with packages, prices, and treasury transfers. |
+| **Wallet Integration** | IMPLEMENTED | Frontend integrates with Freighter (`@stellar/freighter-api`) to build and sign transactions. |
+| **Backend Verification** | PARTIALLY IMPLEMENTED | The `stellarController` exists, but `stellarVerificationService.ts` lacks real XDR extraction and relies on mock data. |
+
+## 🛠 Technology Stack
+
+* **Frontend:** Next.js (App Router), React, Tailwind CSS, Turbopack, Vitest
+* **Backend:** Node.js, Express, TypeScript, Prisma (SQLite), Vitest, Node Native Test Runner
+* **Blockchain:** Soroban (Rust), Stellar SDK, Freighter API
+
+## 🏛 Architecture
+
+```mermaid
+flowchart TD
+    User([Manager]) --> |Views & Actions| Frontend(Next.js Frontend)
+    Frontend <--> |Wallet Connection| Wallet(Freighter Wallet)
+    
+    subgraph Web Stack
+        Frontend <--> |HTTP API| Backend(Express API)
+        Backend <--> |Prisma ORM| Database[(SQLite DB)]
+    end
+
+    subgraph Stellar Network
+        Wallet --> |Submit TX| Contract(Soroban Contract)
+        Contract --> |Transfer USDC| Treasury([Treasury Account])
+    end
+
+    Frontend -.-> |Sends TX Hash| Backend
+    Backend -.-> |(Incomplete) Verify TX via RPC| Contract
+```
+
+*Note: The backend-to-Stellar verification flow currently relies on mock parsing and requires implementation to support real transactions.*
+
+## 📂 Repository Structure
+
+```text
+football-manager-xi/
+├── backend/            # Express API, Prisma schema, server tests
+├── contracts/          # Soroban smart contracts (fm-coin-store)
+├── frontend/           # Next.js web application and components
+└── README.md           # This file
+```
+
+## 🚀 Getting Started
+
+### Prerequisites
+* Node.js (v20+ recommended)
+* npm
+* Rust & Cargo (for Soroban contracts)
+* Freighter Wallet browser extension (for testing payments)
+
+### 1. Database & Backend Setup
+
+1. Navigate to the backend directory:
+   ```bash
+   cd backend
+   npm install
+   ```
+2. Set up environment variables from the example:
+   ```bash
+   cp .env.example .env
+   ```
+3. Initialize the database and apply migrations:
+   ```bash
+   npm run prisma:generate
+   npm run prisma:migrate
+   ```
+4. Seed the database with development data:
+   ```bash
+   npm run prisma:seed
+   ```
+5. Start the backend development server:
+   ```bash
+   npm run dev
+   ```
+
+### 2. Frontend Setup
+
+1. Open a new terminal and navigate to the frontend directory:
+   ```bash
+   cd frontend
+   npm install
+   ```
+2. Set up environment variables:
+   ```bash
+   cp .env.example .env.local
+   ```
+3. Start the frontend development server:
+   ```bash
+   npm run dev
+   ```
+4. Access the game at `http://localhost:3000`.
+
+## 🧪 Testing and Building
+
+**Frontend:**
+```bash
+cd frontend
+npm run test    # Runs Vitest component tests
+npm run build   # Creates optimized Next.js production build
+```
+
+**Backend:**
+Due to mixed test runners, tests require specific commands:
+```bash
+cd backend
+npm run test -- src          # Runs Stellar unit tests (Vitest)
+npx tsx --test src/tests/app.test.ts  # Runs integration tests (Node Test Runner)
+```
+
+**Contracts:**
+```bash
+cd contracts/fm-coin-store
+cargo test
+```
+*(Note: Requires MSVC build tools `link.exe` on Windows).*
+
+## 🔌 API Overview
+
+Core implemented routes (Base: `/api/v1`):
+
+* `GET /clubs/:id/finance` - Retrieve club balance and transaction ledger.
+* `PUT /clubs/:id/starting-xi` - Set validated starting lineup.
+* `PUT /clubs/:id/tactics` - Set formation and mentality.
+* `POST /clubs/:id/scouting` - Deducts 500 FM and returns scouted players.
+* `POST /clubs/:id/players/:playerId/buy` - Transfer player ownership and exchange funds.
+* `POST /fixtures/:id/simulate` - Simulate a match and record events.
+* `GET /leagues/:season/table` - Retrieve current standings.
+* `GET /stellar/packages` - Retrieve FM Coin purchase configurations.
+* `POST /stellar/verify/:clubId` - Submit a transaction hash for backend verification.
+
+## 🔐 Security & Limitations
+
+* **No Authentication:** The app completely bypasses authentication. Routes blindly trust the provided `clubId`. Do not deploy publicly without implementing auth.
+* **Incomplete Payment Verification:** `StellarVerificationService` throws `Malformed/missing contract event` unless provided with a test mock. It cannot currently parse real XDR from a Testnet purchase.
+* **Testnet Unverified:** Because of the XDR parsing limitation, an end-to-end Testnet flow cannot be successfully completed on this commit.
+
+## 🤝 Contribution Guidelines
+
+This repository currently lacks a formal `CONTRIBUTING.md`, `CODE_OF_CONDUCT.md`, and issue templates. If you wish to contribute, please open an issue to discuss proposed changes before submitting a pull request.
+
+## 📄 License
+
+This repository does not currently contain a `LICENSE` file. All rights reserved by the author until an explicit open-source license is added.
