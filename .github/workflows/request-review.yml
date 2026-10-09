@@ -1,0 +1,30 @@
+name: Request Review
+
+on:
+  pull_request_target:
+    types: [ opened, reopened, ready_for_review ]
+
+jobs:
+  request-review:
+    runs-on: ubuntu-latest
+    # Do not request review if Stanley471 authored the PR, or if it is a draft
+    if: github.actor != 'Stanley471' && !github.event.pull_request.draft
+    permissions:
+      pull-requests: write
+    steps:
+      - name: Request review from Stanley471
+        uses: actions/github-script@v7
+        with:
+          script: |
+            try {
+              // Attempt to request review. This will succeed if the repository token has sufficient permission.
+              await github.rest.pulls.requestReviewers({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                pull_number: context.issue.number,
+                reviewers: ['Stanley471']
+              });
+              console.log('Review requested successfully.');
+            } catch (error) {
+              console.error('Failed to request review:', error);
+            }
