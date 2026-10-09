@@ -111,6 +111,12 @@ describe('Football Manager XI MVP API', () => {
     ];
     await request(app).put(`/api/v1/clubs/${homeClubId}/starting-xi`).send({ playerIds: validXI });
 
+    // Clean up any existing match for this fixture
+    const existingMatch = await prisma.match.findUnique({ where: { fixtureId } });
+    if (existingMatch) {
+      await prisma.matchEvent.deleteMany({ where: { matchId: existingMatch.id } });
+      await prisma.match.delete({ where: { id: existingMatch.id } });
+    }
 
     const res = await request(app).post(`/api/v1/fixtures/${fixtureId}/simulate`);
     assert.strictEqual(res.status, 200);
