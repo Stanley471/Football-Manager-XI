@@ -36,7 +36,7 @@ jobs:
 
       - name: Seed database
         working-directory: backend
-        run: npm run prisma:seed
+        run: npx prisma db seed
 
       - name: Run backend unit tests
         working-directory: backend
