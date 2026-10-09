@@ -2,13 +2,6 @@
 
 An open-source football management game with a built-in FM Coin economy integrated with the Stellar blockchain. Manage your club, set your tactics, simulate matches, and handle finances to build the ultimate team.
 
-## ⚠️ Project Status & Implementation Caveats
-
-This project is an MVP and is currently **in development**. While many core features are functional, some critical integrations are incomplete:
-
-* **Authentication & Authorization:** The application currently relies on a hardcoded development `CLUB_ID`. There is no production authentication or wallet-to-club ownership verification implemented yet.
-* **Stellar Verification:** While the Soroban smart contract is written and the frontend integrates with the Freighter wallet, the backend Express server currently relies on **mocked XDR parsing** for transaction verification. A real, end-to-end Testnet transaction will fail verification without further implementation.
-* **Database:** The project currently uses a local **SQLite** database (`dev.db`) for development, despite any earlier plans for PostgreSQL or Supabase.
 
 ## 🌟 Implemented Features
 
@@ -46,21 +39,21 @@ This project is an MVP and is currently **in development**. While many core feat
 
 ```mermaid
 flowchart TD
-    User([Manager]) --> |Views & Actions| Frontend(Next.js Frontend)
-    Frontend <--> |Wallet Connection| Wallet(Freighter Wallet)
+    User(["Manager"]) -->|"Views and Actions"| Frontend("Next.js Frontend")
+    Frontend <-->|"Wallet Connection"| Wallet("Freighter Wallet")
     
     subgraph Web Stack
-        Frontend <--> |HTTP API| Backend(Express API)
-        Backend <--> |Prisma ORM| Database[(SQLite DB)]
+        Frontend <-->|"HTTP API"| Backend("Express API")
+        Backend <-->|"Prisma ORM"| Database[("SQLite DB")]
     end
 
     subgraph Stellar Network
-        Wallet --> |Submit TX| Contract(Soroban Contract)
-        Contract --> |Transfer USDC| Treasury([Treasury Account])
+        Wallet -->|"Submit TX"| Contract("Soroban Contract")
+        Contract -->|"Transfer USDC"| Treasury(["Treasury Account"])
     end
 
-    Frontend -.-> |Sends TX Hash| Backend
-    Backend -.-> |(Incomplete) Verify TX via RPC| Contract
+    Frontend -.->|"Sends TX Hash"| Backend
+    Backend -.->|"(Incomplete) Verify TX via RPC"| Contract
 ```
 
 *Note: The backend-to-Stellar verification flow currently relies on mock parsing and requires implementation to support real transactions.*
