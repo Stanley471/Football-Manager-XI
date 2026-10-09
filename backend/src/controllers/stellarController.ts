@@ -3,6 +3,23 @@ import { StellarVerificationService } from '../services/stellarVerificationServi
 
 const stellarService = new StellarVerificationService();
 
+export const getPackages = (req: Request, res: Response): void => {
+  res.status(200).json({
+    success: true,
+    data: [
+      { id: 'starter', name: 'Starter', amount: 10000, priceString: 'Price configured on Stellar' },
+      { id: 'popular', name: 'Popular', amount: 25000, priceString: 'Price configured on Stellar' },
+      { id: 'big', name: 'Big', amount: 60000, priceString: 'Price configured on Stellar' },
+      { id: 'mega', name: 'Mega', amount: 150000, priceString: 'Price configured on Stellar' },
+    ],
+    config: {
+      network: process.env.STELLAR_NETWORK || 'TESTNET',
+      rpcUrl: process.env.STELLAR_RPC_URL || 'https://soroban-testnet.stellar.org',
+      contractId: process.env.STELLAR_FM_COIN_STORE_CONTRACT_ID || '',
+    }
+  });
+};
+
 export const verifyPurchase = async (req: Request, res: Response): Promise<void> => {
   const clubId = req.params.clubId as string;
   const { transactionHash } = req.body;
