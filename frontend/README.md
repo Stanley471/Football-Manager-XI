@@ -34,3 +34,17 @@ You can check out [the Next.js GitHub repository](https://github.com/vercel/next
 The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
 
 Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+
+
+## Stellar Wallet Integration (FM Coins)
+
+The application integrates with the Soroban Stellar network to allow users to purchase FM Coins directly from the frontend using the Freighter Wallet extension.
+
+- **`src/lib/stellar.ts`**: Contains the core logic to connect to the Freighter wallet, construct Soroban contract transactions, and submit them.
+- **`src/components/BuyCoins.tsx`**: Provides the user interface for purchasing FM Coins. Users can connect their wallet, select a package, and initiate the transaction.
+
+### Testnet Support
+Ensure that your Freighter wallet is switched to the **Testnet** network and funded with Testnet XLM and test USDC to properly interact with the application.
+
+### Local Development
+The packages configuration is fetched directly from the backend endpoint: `GET /api/v1/stellar/packages`. No local package configurations or prices are hardcoded in the frontend.
