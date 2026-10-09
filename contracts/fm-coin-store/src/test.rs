@@ -1,12 +1,12 @@
 #![cfg(test)]
 
 use super::*;
-use soroban_sdk::{testutils::{Address as _, Events}, Address, Env, IntoVal};
+use soroban_sdk::{testutils::{Address as _, Events}, Address, Env, FromVal};
 use soroban_sdk::token::Client as TokenClient;
 use soroban_sdk::token::StellarAssetClient as TokenAdminClient;
 
-fn setup_test_token(env: &Env, admin: &Address) -> (Address, TokenClient, TokenAdminClient) {
-    let contract_id = env.register_stellar_asset_contract(admin.clone());
+fn setup_test_token<'a>(env: &'a Env, admin: &Address) -> (Address, TokenClient<'a>, TokenAdminClient<'a>) {
+    let contract_id = env.register_stellar_asset_contract_v2(admin.clone()).address();
     let token_client = TokenClient::new(env, &contract_id);
     let token_admin = TokenAdminClient::new(env, &contract_id);
     (contract_id, token_client, token_admin)
@@ -47,16 +47,17 @@ fn test_successful_purchase() {
 
     // 5. Verify Event was published
     let events = env.events().all();
-    assert_eq!(events.len(), 1);
     
     let event = events.last().unwrap();
     // The event payload: (package as u32, price, fm_amount) -> (1u32, 10_0000000i128, 10_000u32)
-    let expected_payload = (1u32, starter_price, 10_000u32).into_val(&env);
+    let expected_payload = (1u32, starter_price, 10_000u32);
     
-    assert_eq!(event.1.topics.len(), 2);
+    assert_eq!(event.1.len(), 2);
     // Topic 0: symbol_short!("purchase")
     // Topic 1: buyer
-    assert_eq!(event.1.data, expected_payload);
+    
+    let actual_payload = <(u32, i128, u32)>::from_val(&env, &event.2);
+    assert_eq!(actual_payload, expected_payload);
 }
 
 #[test]
