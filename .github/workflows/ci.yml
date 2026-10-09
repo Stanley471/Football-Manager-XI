@@ -30,9 +30,21 @@ jobs:
         working-directory: backend
         run: npm run build
 
-      - name: Run backend tests
+      - name: Push Prisma Schema
         working-directory: backend
-        run: npm run test -- src
+        run: npx prisma db push
+
+      - name: Seed database
+        working-directory: backend
+        run: npm run prisma:seed
+
+      - name: Run backend unit tests
+        working-directory: backend
+        run: npx vitest run src/__tests__
+
+      - name: Run backend integration tests
+        working-directory: backend
+        run: npx tsx --test src/tests/app.test.ts
 
   frontend-tests:
     runs-on: ubuntu-latest
